@@ -1,0 +1,68 @@
+{
+    // 使用 IntelliSense 了解相关属性。 
+    // 悬停以查看现有属性的描述。
+    // 欲了解更多信息，请访问: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "run vllm tei embedding server",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "vllm_tei_plugin.entrypoints.openai.api_server",
+            "args": [
+                "--model",
+                "/opt/huggingface/BAAI/bge-large-zh-v1.5",
+                "--dtype",
+                "float16",
+                "--gpu-memory-utilization",
+                "0.4",
+                "--served-model-name",
+                "model",
+                "--host",
+                "0.0.0.0",
+                "--port",
+                "8000",
+            ],
+            "env": {
+                "CUDA_VISIBLE_DEVICES": "0",
+                "PYDEVD_WARN_SLOW_RESOLVE_TIMEOUT": "999999999",
+                "VLLM_USE_V1": "0",
+                "VLLM_ATTENTION_BACKEND": "XFORMERS",
+                "VLLM_AUDIO_FETCH_TIMEOUT": "999999999",
+                "VLLM_RPC_TIMEOUT": "999999999",
+                "VLLM_ENGINE_ITERATION_TIMEOUT_S": "999999999"
+            },
+            "justMyCode": false
+        },
+        {
+            "name": "run vllm tei rerank server",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "vllm_tei_plugin.entrypoints.openai.api_server",
+            "args": [
+                "--model",
+                "/opt/huggingface/BAAI/bge-reranker-large",
+                "--dtype",
+                "float16",
+                "--gpu-memory-utilization",
+                "0.4",
+                "--served-model-name",
+                "model",
+                "--host",
+                "0.0.0.0",
+                "--port",
+                "8000",
+            ],
+            "env": {
+                "CUDA_VISIBLE_DEVICES": "0",
+                "PYDEVD_WARN_SLOW_RESOLVE_TIMEOUT": "999999999",
+                "VLLM_USE_V1": "0",
+                "VLLM_ATTENTION_BACKEND": "XFORMERS",
+                "VLLM_AUDIO_FETCH_TIMEOUT": "999999999",
+                "VLLM_RPC_TIMEOUT": "999999999",
+                "VLLM_ENGINE_ITERATION_TIMEOUT_S": "999999999"
+            },
+            "justMyCode": false
+        },
+    ]
+}

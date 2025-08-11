@@ -38,7 +38,7 @@ class TeiServingEmbed(OpenAIServingEmbedding):
             encoding_format="float",
             dimensions=None,
             user=None,
-            truncate_prompt_tokens=-1 if request.truncate else None,
+            truncate_prompt_tokens=self.max_model_len if request.truncate else None,
         )
 
     async def embed(

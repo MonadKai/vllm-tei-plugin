@@ -21,17 +21,16 @@ packages = [
 
 [project]
 name = "vllm-tei-plugin"
-version = "0.1.0"
+version = "0.8.5.post1"
 description = "vLLM tei plugin for enhanced monitoring and tracing"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 authors = [
     { name = "kai.liu", email = "onlookerliu_sjtu@163.com" }
 ]
 license = { text = "Apache 2.0" }
 keywords = ["vllm", "tei", "embedding", "rerank"]
 classifiers = [
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10", 
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -43,7 +42,7 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Information Analysis",
 ]
 dependencies = [
-    "vllm==0.10.0",
+    "vllm==0.8.5.post1",
     "pydantic>=2.0.0",
 ]
 

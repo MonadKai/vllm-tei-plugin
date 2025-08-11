@@ -25,7 +25,7 @@ class TeiServingRerank(ServingScores):
             query=request.query,
             documents=request.texts,
             top_n=0,
-            truncate_prompt_tokens=-1 if request.truncate else None,
+            truncate_prompt_tokens=self.max_model_len if request.truncate else None,
         )
 
     def request_output_to_ranks(

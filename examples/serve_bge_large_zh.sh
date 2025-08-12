@@ -1,4 +1,4 @@
-export HIP_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=0
 
 # VLLM_USE_V1=1 is not supported with ['BertModel']
 export VLLM_USE_V1=0

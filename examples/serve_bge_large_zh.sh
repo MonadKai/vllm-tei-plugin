@@ -1,4 +1,4 @@
-export HIP_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=0
 
 python3 -m vllm_tei_plugin.entrypoints.openai.api_server \
     --model BAAI/bge-large-zh-v1.5 \

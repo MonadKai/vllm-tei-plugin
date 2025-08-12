@@ -1,5 +1,9 @@
 export HIP_VISIBLE_DEVICES=0
 
+# VLLM_USE_V1=1 is not supported with ['XLMRobertaForSequenceClassification']
+export VLLM_USE_V1=0
+
+
 python3 -m vllm_tei_plugin.entrypoints.openai.api_server \
     --model BAAI/bge-reranker-large \
     --tensor-parallel-size 1 \

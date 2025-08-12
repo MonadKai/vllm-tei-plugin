@@ -1,0 +1,13 @@
+FROM image.sourcefind.cn:5000/dcu/admin/base/vllm:0.8.5-ubuntu22.04-dtk25.04.1-rc5-das1.6-py3.10-20250724
+
+LABEL maintainer="kai.liu <kai.liu@brgroup.com>"
+
+# add vllm kubernetes plugin support
+COPY dist/vllm_kubernetes_plugin-0.1.0.tar.gz /tmp/vllm_kubernetes_plugin-0.1.0.tar.gz
+RUN pip install /tmp/vllm_kubernetes_plugin-0.1.0.tar.gz --no-deps && rm -rf /tmp/vllm_kubernetes_plugin-0.1.0.tar.gz
+
+# add vllm tei plugin support
+COPY dist/vllm_tei_plugin-0.8.5.post1.tar.gz /tmp/vllm_tei_plugin-0.8.5.post1.tar.gz
+RUN pip install /tmp/vllm_tei_plugin-0.8.5.post1.tar.gz --no-deps && rm -rf /tmp/vllm_tei_plugin-0.8.5.post1.tar.gz
+
+ENTRYPOINT ["python3", "-m", "vllm_tei_plugin.entrypoints.openai.api_server"]

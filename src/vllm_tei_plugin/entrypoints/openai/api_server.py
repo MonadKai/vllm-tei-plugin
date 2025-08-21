@@ -29,7 +29,7 @@ from vllm.entrypoints.openai.api_server import (
 from vllm.entrypoints.openai.cli_args import make_arg_parser, validate_parsed_serve_args
 from vllm.entrypoints.openai.tool_parsers import ToolParserManager
 from vllm.entrypoints.utils import cli_env_setup, load_aware_call, with_cancellation
-from vllm.utils import FlexibleArgumentParser
+from vllm.utils import FlexibleArgumentParser, decorate_logs
 
 from vllm_tei_plugin.entrypoints.openai.serving_tei_embed import TeiServingEmbed
 from vllm_tei_plugin.entrypoints.openai.serving_tei_rerank import TeiServingRerank
@@ -152,13 +152,19 @@ async def rerank(request: RerankRequest, raw_request: Request):
 
 async def run_server(args, **uvicorn_kwargs) -> None:
     """Run a single-worker API server."""
+
+    # Add process-specific prefix to stdout and stderr.
+    decorate_logs("APIServer")
+
     listen_address, sock = setup_server(args)
     await run_server_worker(listen_address, sock, args, **uvicorn_kwargs)
 
 
-async def run_server_worker(
-    listen_address, sock, args, client_config=None, **uvicorn_kwargs
-) -> None:
+async def run_server_worker(listen_address,
+                            sock,
+                            args,
+                            client_config=None,
+                            **uvicorn_kwargs) -> None:
     """Run a single API server worker."""
 
     if args.tool_parser_plugin and len(args.tool_parser_plugin) > 3:
@@ -169,16 +175,20 @@ async def run_server_worker(
     # Load logging config for uvicorn if specified
     log_config = load_log_config(args.log_config_file)
     if log_config is not None:
-        uvicorn_kwargs["log_config"] = log_config
+        uvicorn_kwargs['log_config'] = log_config
 
-    async with build_async_engine_client(args, client_config) as engine_client:
+    async with build_async_engine_client(
+            args,
+            client_config=client_config,
+    ) as engine_client:
         maybe_register_tokenizer_info_endpoint(args)
         app = extended_build_app(args)
 
         vllm_config = await engine_client.get_vllm_config()
         await extended_init_app_state(engine_client, vllm_config, app.state, args)
 
-        logger.info("Starting vLLM API server %d on %s", server_index, listen_address)
+        logger.info("Starting vLLM API server %d on %s", server_index,
+                    listen_address)
         shutdown_task = await serve_http(
             app,
             sock=sock,
@@ -210,8 +220,7 @@ if __name__ == "__main__":
     # entrypoints.
     cli_env_setup()
     parser = FlexibleArgumentParser(
-        description="vLLM OpenAI-Compatible RESTful API server."
-    )
+        description="vLLM OpenAI-Compatible RESTful API server.")
     parser = make_arg_parser(parser)
     args = parser.parse_args()
     validate_parsed_serve_args(args)

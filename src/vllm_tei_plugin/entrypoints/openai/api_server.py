@@ -65,10 +65,16 @@ async def extended_init_app_state(
         request_logger = RequestLogger(max_log_len=args.max_log_len)
 
     model_config = vllm_config.model_config
+
+    if envs.VLLM_USE_V1:
+        supported_tasks = await engine_client.get_supported_tasks()  # type: ignore
+    else:
+        supported_tasks = model_config.supported_tasks
+
     resolved_chat_template = load_chat_template(args.chat_template)
 
     enable_serving_reranking = (
-        "classify" in model_config.supported_tasks
+        "classify" in supported_tasks
         and getattr(model_config.hf_config, "num_labels", 0) == 1
     )
 
@@ -82,7 +88,7 @@ async def extended_init_app_state(
             chat_template=resolved_chat_template,
             chat_template_content_format=args.chat_template_content_format,
         )
-        if "embed" in model_config.supported_tasks
+        if "embed" in supported_tasks
         else None
     )
     state.tei_serving_rerank = (
@@ -92,7 +98,7 @@ async def extended_init_app_state(
             state.openai_serving_models,
             request_logger=request_logger,
         )
-        if ("embed" in model_config.supported_tasks or enable_serving_reranking)
+        if ("embed" in supported_tasks or enable_serving_reranking)
         else None
     )
 

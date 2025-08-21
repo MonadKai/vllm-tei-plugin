@@ -1,0 +1,11 @@
+FROM docker.m.daocloud.io/vllm/vllm-openai:v0.10.0
+
+# add vllm kubernetes plugin support
+# COPY dist/vllm_kubernetes_plugin-0.1.0.tar.gz /tmp/vllm_kubernetes_plugin-0.1.0.tar.gz
+# RUN pip install /tmp/vllm_kubernetes_plugin-0.1.0.tar.gz --no-deps && rm -rf /tmp/vllm_kubernetes_plugin-0.1.0.tar.gz
+
+# add vllm tei plugin support
+COPY dist/vllm_tei_plugin-0.10.0.tar.gz /tmp/vllm_tei_plugin-0.10.0.tar.gz
+RUN pip install /tmp/vllm_tei_plugin-0.10.0.tar.gz --no-deps && rm -rf /tmp/vllm_tei_plugin-0.10.0.tar.gz
+
+ENTRYPOINT ["python3", "-m", "vllm_tei_plugin.entrypoints.openai.api_server"]

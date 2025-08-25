@@ -1,5 +1,4 @@
-FROM vllm/vllm-openai:v0.10.0
-# FROM docker.m.daocloud.io/vllm/vllm-openai:v0.10.0
+FROM m.daocloud.io/quay.io/ascend/vllm-ascend:v0.10.0rc1
 
 # add vllm kubernetes plugin support
 # COPY dist/vllm_kubernetes_plugin-0.1.0.tar.gz /tmp/vllm_kubernetes_plugin-0.1.0.tar.gz

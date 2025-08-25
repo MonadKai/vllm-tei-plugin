@@ -21,7 +21,7 @@ packages = [
 
 [project]
 name = "vllm-tei-plugin"
-version = "0.8.5.post1"
+version = "0.9.1"
 description = "vLLM tei plugin for enhanced monitoring and tracing"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -42,7 +42,7 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Information Analysis",
 ]
 dependencies = [
-    "vllm==0.8.5.post1",
+    "vllm==0.9.1",
     "pydantic>=2.0.0",
 ]
 

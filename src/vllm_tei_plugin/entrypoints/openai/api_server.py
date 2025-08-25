@@ -1,11 +1,11 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
-import signal
 from argparse import Namespace
 from http import HTTPStatus
 from typing import Optional
 
 import uvloop
+import vllm.envs as envs
 from fastapi import APIRouter, Depends, FastAPI, Request
 from fastapi.responses import JSONResponse
 from starlette.datastructures import State
@@ -15,22 +15,20 @@ from vllm.entrypoints.chat_utils import load_chat_template
 from vllm.entrypoints.launcher import serve_http
 from vllm.entrypoints.logger import RequestLogger
 from vllm.entrypoints.openai.api_server import (
-    TIMEOUT_KEEP_ALIVE,
     ErrorResponse,
     base,
     build_app,
     build_async_engine_client,
-    create_server_socket,
     init_app_state,
+    load_log_config,
     logger,
+    setup_server,
     validate_json_request,
 )
 from vllm.entrypoints.openai.cli_args import make_arg_parser, validate_parsed_serve_args
 from vllm.entrypoints.openai.tool_parsers import ToolParserManager
 from vllm.entrypoints.utils import cli_env_setup, load_aware_call, with_cancellation
-from vllm.reasoning import ReasoningParserManager
-from vllm.utils import FlexibleArgumentParser, is_valid_ipv6_address, set_ulimit
-from vllm.version import __version__ as VLLM_VERSION
+from vllm.utils import FlexibleArgumentParser
 
 from vllm_tei_plugin.entrypoints.openai.serving_tei_embed import TeiServingEmbed
 from vllm_tei_plugin.entrypoints.openai.serving_tei_rerank import TeiServingRerank
@@ -80,7 +78,8 @@ async def extended_init_app_state(
             chat_template=resolved_chat_template,
             chat_template_content_format=args.chat_template_content_format,
         )
-        if model_config.task == "embed" else None
+        if model_config.task == "embed"
+        else None
     )
     state.tei_serving_rerank = (
         TeiServingRerank(
@@ -89,7 +88,8 @@ async def extended_init_app_state(
             state.openai_serving_models,
             request_logger=request_logger,
         )
-        if model_config.task == "score" else None
+        if model_config.task == "score"
+        else None
     )
 
 
@@ -141,57 +141,33 @@ async def rerank(request: RerankRequest, raw_request: Request):
 
 
 async def run_server(args, **uvicorn_kwargs) -> None:
-    logger.info("vLLM API server version %s", VLLM_VERSION)
-    logger.info("args: %s", args)
+    """Run a single-worker API server."""
+    listen_address, sock = setup_server(args)
+    await run_server_worker(listen_address, sock, args, **uvicorn_kwargs)
+
+
+async def run_server_worker(
+    listen_address, sock, args, client_config=None, **uvicorn_kwargs
+) -> None:
+    """Run a single API server worker."""
 
     if args.tool_parser_plugin and len(args.tool_parser_plugin) > 3:
         ToolParserManager.import_tool_parser(args.tool_parser_plugin)
 
-    valid_tool_parses = ToolParserManager.tool_parsers.keys()
-    if args.enable_auto_tool_choice \
-        and args.tool_call_parser not in valid_tool_parses:
-        raise KeyError(f"invalid tool call parser: {args.tool_call_parser} "
-                       f"(chose from {{ {','.join(valid_tool_parses)} }})")
+    server_index = client_config.get("client_index", 0) if client_config else 0
 
-    valid_reasoning_parses = ReasoningParserManager.reasoning_parsers.keys()
-    if args.enable_reasoning \
-        and args.reasoning_parser not in valid_reasoning_parses:
-        raise KeyError(
-            f"invalid reasoning parser: {args.reasoning_parser} "
-            f"(chose from {{ {','.join(valid_reasoning_parses)} }})")
+    # Load logging config for uvicorn if specified
+    log_config = load_log_config(args.log_config_file)
+    if log_config is not None:
+        uvicorn_kwargs["log_config"] = log_config
 
-    # workaround to make sure that we bind the port before the engine is set up.
-    # This avoids race conditions with ray.
-    # see https://github.com/vllm-project/vllm/issues/8204
-    sock_addr = (args.host or "", args.port)
-    sock = create_server_socket(sock_addr)
-
-    # workaround to avoid footguns where uvicorn drops requests with too
-    # many concurrent requests active
-    set_ulimit()
-
-    def signal_handler(*_) -> None:
-        # Interrupt server on sigterm while initializing
-        raise KeyboardInterrupt("terminated")
-
-    signal.signal(signal.SIGTERM, signal_handler)
-
-    async with build_async_engine_client(args) as engine_client:
+    async with build_async_engine_client(args, client_config) as engine_client:
         app = extended_build_app(args)
 
         vllm_config = await engine_client.get_vllm_config()
         await extended_init_app_state(engine_client, vllm_config, app.state, args)
 
-        def _listen_addr(a: str) -> str:
-            if is_valid_ipv6_address(a):
-                return '[' + a + ']'
-            return a or "0.0.0.0"
-
-        is_ssl = args.ssl_keyfile and args.ssl_certfile
-        logger.info("Starting vLLM API server on http%s://%s:%d",
-                    "s" if is_ssl else "", _listen_addr(sock_addr[0]),
-                    sock_addr[1])
-
+        logger.info("Starting vLLM API server %d on %s", server_index, listen_address)
         shutdown_task = await serve_http(
             app,
             sock=sock,
@@ -202,7 +178,7 @@ async def run_server(args, **uvicorn_kwargs) -> None:
             # NOTE: When the 'disable_uvicorn_access_log' value is True,
             # no access log will be output.
             access_log=not args.disable_uvicorn_access_log,
-            timeout_keep_alive=TIMEOUT_KEEP_ALIVE,
+            timeout_keep_alive=envs.VLLM_HTTP_TIMEOUT_KEEP_ALIVE,
             ssl_keyfile=args.ssl_keyfile,
             ssl_certfile=args.ssl_certfile,
             ssl_ca_certs=args.ssl_ca_certs,
@@ -215,7 +191,6 @@ async def run_server(args, **uvicorn_kwargs) -> None:
         await shutdown_task
     finally:
         sock.close()
-
 
 
 if __name__ == "__main__":

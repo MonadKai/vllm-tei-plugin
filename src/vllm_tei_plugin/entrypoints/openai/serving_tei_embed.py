@@ -1,5 +1,5 @@
 import logging
-from typing import TYPE_CHECKING, Union
+from typing import Union
 
 from fastapi import Request
 from vllm.entrypoints.openai.protocol import (
@@ -9,9 +9,8 @@ from vllm.entrypoints.openai.protocol import (
 from vllm.entrypoints.openai.serving_embedding import OpenAIServingEmbedding
 
 from vllm_tei_plugin.protocol import EmbedRequest, TruncationDirection
-
-if TYPE_CHECKING:
-    from vllm.entrypoints.openai.api_server import ErrorResponse
+from vllm.entrypoints.openai.api_server import ErrorResponse
+    
 
 
 __all__ = ["TeiServingEmbed"]
@@ -43,12 +42,14 @@ class TeiServingEmbed(OpenAIServingEmbedding):
 
     async def embed(
         self, request: EmbedRequest, raw_request: Request
-    ) -> Union[list[list[float]], "ErrorResponse"]:
+    ) -> Union[list[list[float]], ErrorResponse]:
         if request.truncation_direction == TruncationDirection.LEFT:
             logger.error("truncate_direction is not supported")
             return self.create_error_response("truncate_direction is not supported")
 
         request_openai = self._convert_to_openai_embedding_request(request)
         response_openai = await super().create_embedding(request_openai, raw_request)
+        if isinstance(response_openai, ErrorResponse):
+            return response_openai
         response_tei = _convert_to_tei_embed_response(response_openai)
         return response_tei

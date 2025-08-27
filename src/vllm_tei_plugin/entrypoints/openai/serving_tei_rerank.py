@@ -44,7 +44,7 @@ class TeiServingRerank(ServingScores):
 
     async def do_rerank(
         self, request: RerankRequest, raw_request: Optional[Request] = None
-    ) -> Union[list[dict], "ErrorResponse"]:
+    ) -> Union[list[dict], ErrorResponse]:
         """
         Rerank API based on JinaAI's rerank API; implements the same
         API interface. Designed for compatibility with off-the-shelf
@@ -79,7 +79,7 @@ class TeiServingRerank(ServingScores):
 
     async def rerank(
         self, request: TeiRerankRequest, raw_request: Request
-    ) -> Union[list[dict], "ErrorResponse"]:
+    ) -> Union[list[dict], ErrorResponse]:
         if request.return_text:
             logger.exception("return_text is not supported")
             return self.create_error_response("return_text is not supported")
